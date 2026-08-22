@@ -1,0 +1,7 @@
+{
+  "webhook_url": "",
+  "targets": [
+    { "name": "example-homepage", "url": "https://example.com", "interval_seconds": 30, "timeout_seconds": 5 },
+    { "name": "example-api-health", "url": "https://example.com/health", "interval_seconds": 15, "timeout_seconds": 5 }
+  ]
+}
