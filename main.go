@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"go-uptime-monitor/internal/monitor"
@@ -26,6 +28,18 @@ func loadConfig(path string) (fileConfig, error) {
 	var cfg fileConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return fileConfig{}, err
+	}
+	seen := make(map[string]bool)
+	for i := range cfg.Targets {
+		name := strings.TrimSpace(cfg.Targets[i].Name)
+		if name == "" {
+			return fileConfig{}, fmt.Errorf("target %d has a blank name", i+1)
+		}
+		if seen[name] {
+			return fileConfig{}, fmt.Errorf("duplicate target name %q", name)
+		}
+		seen[name] = true
+		cfg.Targets[i].Name = name
 	}
 	return cfg, nil
 }

@@ -50,13 +50,20 @@ curl localhost:8080/status
 A `5xx` response or a network error is "down"; anything else (including
 `4xx`) is "up" -- the server answered, it just doesn't have that route.
 
+Target names are trimmed and must be nonempty and unique. Invalid names
+stop startup with a clear configuration error, so targets cannot overwrite
+each other's status or trigger misleading transitions.
+
 ## Tests
 
 ```bash
 go test ./... -v
 ```
 
-10 tests, all exercising real behavior rather than mocking everything away:
+Tests exercise real behavior rather than mocking everything away:
+
+- **Configuration validation** (`main_test.go`): rejects missing, blank, and
+  duplicate target names, including duplicates after trimming whitespace.
 
 - **State-transition logic** (`monitor_test.go`): alerts fire exactly once
   per up<->down transition, never on the first check, never while state is
