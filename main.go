@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -26,8 +28,13 @@ func loadConfig(path string) (fileConfig, error) {
 		return fileConfig{}, err
 	}
 	var cfg fileConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&cfg); err != nil {
 		return fileConfig{}, err
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return fileConfig{}, fmt.Errorf("config must contain exactly one JSON object")
 	}
 	seen := make(map[string]bool)
 	for i := range cfg.Targets {
