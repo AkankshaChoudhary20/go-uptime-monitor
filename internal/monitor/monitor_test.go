@@ -104,3 +104,49 @@ func TestSnapshot_ReturnsIndependentCopy(t *testing.T) {
 		t.Fatalf("mutating a snapshot copy corrupted internal state")
 	}
 }
+
+func TestRunCheck_CancellationPreservesHealthAndDoesNotAlert(t *testing.T) {
+	n := &mockNotifier{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	calls := 0
+	checker := func(ctx context.Context, _ string, _ time.Duration) error {
+		calls++
+		if calls == 1 {
+			return nil
+		}
+		cancel()
+		return ctx.Err()
+	}
+	m := New(n, checker)
+	target := Target{Name: "svc", URL: "http://x"}
+	baseline := m.RunCheck(ctx, target)
+	result := m.RunCheck(ctx, target)
+	if result != baseline || m.Snapshot()["svc"] != baseline {
+		t.Fatal("shutdown cancellation changed the last health observation")
+	}
+	if len(n.events) != 0 {
+		t.Fatal("shutdown emitted a false outage alert")
+	}
+}
+
+func TestRunCheck_CancelledFirstObservationIsNotPublished(t *testing.T) {
+	n := &mockNotifier{}
+	ctx, cancel := context.WithCancel(context.Background())
+	m := New(n, func(ctx context.Context, _ string, _ time.Duration) error { cancel(); return ctx.Err() })
+	m.RunCheck(ctx, Target{Name: "svc"})
+	if len(m.Snapshot()) != 0 || len(n.events) != 0 {
+		t.Fatal("cancelled check published health")
+	}
+}
+
+func TestRunCheck_TargetTimeoutStillMarksDown(t *testing.T) {
+	n := &mockNotifier{}
+	m := New(n, sequenceChecker(nil, context.DeadlineExceeded))
+	target := Target{Name: "svc"}
+	m.RunCheck(context.Background(), target)
+	m.RunCheck(context.Background(), target)
+	if m.Snapshot()["svc"].State != StateDown || len(n.events) != 1 {
+		t.Fatal("target timeout should still report an outage when monitor context is live")
+	}
+}

@@ -93,6 +93,15 @@ func (m *Monitor) RunCheck(ctx context.Context, t Target) CheckResult {
 
 	m.mu.Lock()
 	old, existed := m.states[t.Name]
+	// Cancellation belongs to the monitor lifecycle, not target health.
+	// Preserve the last observation and avoid a false outage on shutdown.
+	if ctx.Err() != nil {
+		m.mu.Unlock()
+		if existed {
+			return old
+		}
+		return result
+	}
 	m.states[t.Name] = result
 	m.mu.Unlock()
 
@@ -124,6 +133,9 @@ func (m *Monitor) runLoop(ctx context.Context, t Target) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	if ctx.Err() != nil {
+		return
+	}
 	m.RunCheck(ctx, t)
 	for {
 		select {
