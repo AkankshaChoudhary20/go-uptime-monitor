@@ -13,6 +13,10 @@ func TestLoadConfigTargetNames(t *testing.T) {
 		config  string
 		wantErr string
 	}{
+		{"unknown root field", `{"webhok_url":"https://example.com","targets":[]}`, "unknown field"},
+		{"unknown target field", `{"targets":[{"name":"api","timout":5}]}`, "unknown field"},
+		{"trailing object", `{"targets":[]} {"targets":[]}`, "exactly one"},
+		{"trailing garbage", `{"targets":[]} invalid`, "exactly one"},
 		{"blank", `{"targets":[{"name":""}]}`, "blank name"},
 		{"whitespace", `{"targets":[{"name":" \t\n "}]}`, "blank name"},
 		{"missing", `{"targets":[{"url":"https://example.com"}]}`, "blank name"},
