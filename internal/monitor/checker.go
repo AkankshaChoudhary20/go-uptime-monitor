@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -23,6 +24,9 @@ func HTTPChecker(ctx context.Context, url string, timeout time.Duration) error {
 		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+	// Drain small responses so repeated checks can reuse pooled connections.
+	// Bound the work for large or streaming health endpoints.
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64*1024))
 
 	if resp.StatusCode >= 500 {
 		return fmt.Errorf("server error: status %d", resp.StatusCode)
