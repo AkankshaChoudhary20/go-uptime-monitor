@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -16,5 +16,5 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go vet ./...
-      - run: go test -race -count=1 ./...
+      - run: go test -race -count=1 -timeout=2m ./...
       - run: go build ./...
