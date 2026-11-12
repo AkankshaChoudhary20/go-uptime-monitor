@@ -26,7 +26,9 @@ func HTTPChecker(ctx context.Context, url string, timeout time.Duration) error {
 	defer resp.Body.Close()
 	// Drain small responses so repeated checks can reuse pooled connections.
 	// Bound the work for large or streaming health endpoints.
-	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64*1024))
+	if _, err := io.Copy(io.Discard, io.LimitReader(resp.Body, 64*1024)); err != nil {
+		return fmt.Errorf("reading response: %w", err)
+	}
 
 	if resp.StatusCode >= 500 {
 		return fmt.Errorf("server error: status %d", resp.StatusCode)
