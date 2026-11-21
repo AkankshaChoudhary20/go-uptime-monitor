@@ -33,8 +33,13 @@ go run . -config config.json -addr :8080
 
 Then:
 ```bash
-curl localhost:8080/status
+curl -fsS http://localhost:8080/healthz
+curl -fsS http://localhost:8080/status
 ```
+
+Use `/healthz` to check that the monitor is serving HTTP. Use `/status` to
+inspect the monitored targets. The monitor can be healthy while one or more
+targets are down.
 
 ## Config
 
