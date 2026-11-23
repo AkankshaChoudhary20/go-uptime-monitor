@@ -27,7 +27,7 @@ func loadConfig(path string) (fileConfig, error) {
 	if err != nil {
 		return fileConfig{}, err
 	}
-	var cfg fileConfig
+	var cfg *fileConfig
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&cfg); err != nil {
@@ -35,6 +35,9 @@ func loadConfig(path string) (fileConfig, error) {
 	}
 	if err := decoder.Decode(new(any)); err != io.EOF {
 		return fileConfig{}, fmt.Errorf("config must contain exactly one JSON object")
+	}
+	if cfg == nil {
+		return fileConfig{}, fmt.Errorf("config must be a JSON object")
 	}
 	seen := make(map[string]bool)
 	for i := range cfg.Targets {
@@ -48,7 +51,7 @@ func loadConfig(path string) (fileConfig, error) {
 		seen[name] = true
 		cfg.Targets[i].Name = name
 	}
-	return cfg, nil
+	return *cfg, nil
 }
 
 func main() {
